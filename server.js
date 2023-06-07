@@ -118,7 +118,7 @@ app.get('/api/auth/checkAuth', function (req, res) {
   console.log('get checkauth');
   console.log(req.isAuthenticated());
   if (req.isAuthenticated()) {
-    res.send({ authenticated: true, user: req.user.username });
+    res.send({ authenticated: true, user: req.user.username, role: req.user.role });
   } else {
     res.send({ authenticated: false });
   }
@@ -128,7 +128,7 @@ app.post(
   '/api/auth/signin',
   passport.authenticate('local', {
     failureRedirect: '/login',
-    successRedirect: '/news',
+    successRedirect: '/',
   }),
   (err, req, res, next) => {
     if (err) next(err);
@@ -157,6 +157,12 @@ app.post('/api/auth/signup', (req, res, next) => {
   console.log('user created');
   //   res.redirect('/login');
   res.send('autho ok');
+});
+//выход из аккаунта
+app.get('/api/auth/logout', (req, res, next) => {
+  console.log('was logout');
+  req.logOut();
+  res.send('was logout');
 });
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
