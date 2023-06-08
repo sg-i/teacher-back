@@ -17,8 +17,16 @@ app.use(express.urlencoded({ extended: false }));
 //db
 const db = require('./app/models');
 const User = db.user;
+const News = db.news;
+
 db.sequelize.sync();
-//
+const newsInitial = require('./initialNews.js');
+
+// тесты для news
+// console.log('new', newsInitial);
+// News.create(newsInitial.News[0]);
+// News.create(newsInitial.News[1]);
+// News.create(newsInitial.News[2]);
 
 function validPassword(password, hash, salt) {
   var hashVerify = crypto
@@ -95,6 +103,7 @@ app.use(
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }, //неделя куков
   }),
 );
 sessionStore
@@ -164,6 +173,19 @@ app.get('/api/auth/logout', (req, res, next) => {
   req.logOut();
   res.send('was logout');
 });
+//получение новостей
+app.get('/api/news', function (req, res) {
+  console.log('get checkauth');
+  console.log(req.isAuthenticated());
+  if (req.isAuthenticated()) {
+    News.findAll().then(function (news) {
+      res.send({ news });
+    });
+  } else {
+    res.send('Вы не имеете доступа к этой информации.');
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });
