@@ -19,4 +19,11 @@ db.sequelize = sequelize;
 db.user = require('../models/user.model.js')(sequelize, Sequelize);
 db.news = require('../models/news.model.js')(sequelize, Sequelize);
 
+const lessonsModelObj = require('../models/lessons.model.js')(sequelize, Sequelize);
+db.subject = lessonsModelObj.Subject;
+db.teacher = lessonsModelObj.Teacher;
+db.class = lessonsModelObj.Class;
+db.classroom = lessonsModelObj.Classroom;
+db.lesson = lessonsModelObj.Lesson;
+
 module.exports = db;

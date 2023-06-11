@@ -178,14 +178,51 @@ app.get('/api/news', function (req, res) {
   console.log('get checkauth');
   console.log(req.isAuthenticated());
   if (req.isAuthenticated()) {
-    News.findAll().then(function (news) {
+    News.findAll({
+      order: [['id', 'DESC']],
+    }).then(function (news) {
       res.send({ news });
     });
   } else {
     res.send('Вы не имеете доступа к этой информации.');
   }
 });
-
+//добавление новости (админ)
+app.post('/api/news/add', (req, res, next) => {
+  try {
+    if (req.user.role === 'admin') {
+      newNews = {
+        authorFirstName: req.body.firstname,
+        authorLastName: req.body.lastname,
+        authorPatronymic: req.body.patrotymic,
+        text: req.body.text,
+      };
+      News.create(newNews);
+      res.send(newMews);
+    } else {
+      res.send('Вы не можете добавлять новости.');
+    }
+  } catch (error) {
+    res.send('Какая-то ошибка.');
+  }
+});
+//удаление новости
+app.post('/api/news/delete', (req, res, next) => {
+  try {
+    if (req.user.role === 'admin') {
+      News.destroy({
+        where: {
+          id: req.body.id,
+        },
+      });
+      res.send({ message: 'успех', dltId: req.body.id });
+    } else {
+      res.send('Вы не можете удалять новости.');
+    }
+  } catch (error) {
+    res.send('Какая-то ошибка.');
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });
