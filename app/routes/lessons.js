@@ -1,6 +1,6 @@
 // news.js
 const express = require('express');
-const db = require('../models');
+const db = require('../models/index.js');
 const Lessons = db.lesson;
 const Subjects = db.subject;
 const Teacher = db.teacher;
@@ -19,73 +19,68 @@ function groupByDayOfWeek(array) {
   };
 
   array.forEach((obj) => {
-    // console.log('obj', obj.dataValues);
     if (obj.dataValues.hasOwnProperty('dayOfWeek')) {
       const dayOfWeek = obj.dataValues['dayOfWeek'];
-      console.log(dayOfWeek);
       if (dayOfWeek in result) {
         result[dayOfWeek].push(obj.dataValues);
       }
     }
   });
-  // console.log(result);
   return result;
 }
 
 router.get('/', function (req, res) {
-  console.log('get checkauth');
-  console.log(req.isAuthenticated());
+  try {
+    if (req.isAuthenticated()) {
+      const teacher = req.query.teacher;
+      const classname = req.query.classname;
 
-  if (req.isAuthenticated()) {
-    const teacher = req.query.teacher;
-    const classname = req.query.classname;
+      let searchConditions = {};
 
-    let searchConditions = {};
-    console.log('t', req.query.teacher);
-    console.log('c', req.query.classname);
+      if (teacher) {
+        searchConditions.teacherId = teacher.value;
+      }
 
-    if (teacher) {
-      searchConditions.teacherId = teacher.value;
+      if (classname && classname.value != -1) {
+        searchConditions.classId = classname.value;
+      }
+
+      Lessons.findAll({
+        where: searchConditions,
+        order: [
+          ['dayOfWeek', 'DESC'],
+          ['lessonNumber', 'ASC'],
+        ],
+        include: [
+          {
+            model: Subjects,
+            attributes: ['name'],
+          },
+          {
+            model: Teacher,
+            attributes: ['name'],
+          },
+          {
+            model: Classname,
+            attributes: ['number'],
+          },
+          {
+            model: Classroom,
+            attributes: ['number'],
+          },
+        ],
+        attributes: {
+          exclude: ['subjectId', 'teacherId', 'classId', 'classroomId'], // Исключаем поле subjectId из результата
+        },
+      }).then(function (lessons) {
+        const groupedData = groupByDayOfWeek(lessons);
+        res.send(groupedData);
+      });
+    } else {
+      res.send('Вы не имеете доступа к этой информации.');
     }
-
-    if (classname && classname.value != -1) {
-      searchConditions.classId = classname.value;
-    }
-
-    console.log('запрос', searchConditions);
-    Lessons.findAll({
-      where: searchConditions,
-      order: [
-        ['dayOfWeek', 'DESC'],
-        ['lessonNumber', 'ASC'],
-      ],
-      include: [
-        {
-          model: Subjects,
-          attributes: ['name'],
-        },
-        {
-          model: Teacher,
-          attributes: ['name'],
-        },
-        {
-          model: Classname,
-          attributes: ['number'],
-        },
-        {
-          model: Classroom,
-          attributes: ['number'],
-        },
-      ],
-      attributes: {
-        exclude: ['subjectId', 'teacherId', 'classId', 'classroomId'], // Исключаем поле subjectId из результата
-      },
-    }).then(function (lessons) {
-      const groupedData = groupByDayOfWeek(lessons);
-      res.send(groupedData);
-    });
-  } else {
-    res.send('Вы не имеете доступа к этой информации.');
+  } catch (error) {
+    console.log(error);
   }
 });
 

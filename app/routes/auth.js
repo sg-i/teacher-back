@@ -29,7 +29,6 @@ function genPassword(password) {
 
 passport.use(
   new LocalStrategy(function (username, password, cb) {
-    console.log('loc strateg');
     User.findOne({
       where: {
         username: username,
@@ -81,32 +80,95 @@ router.post(
 );
 
 router.post('/signup', (req, res, next) => {
-  const saltHash = genPassword(req.body.password);
+  try {
+    if (req.user.role === 'superadmin') {
+      const saltHash = genPassword(req.body.password);
 
-  const salt = saltHash.salt;
-  const hash = saltHash.hash;
-  User.create({
-    username: req.body.username,
-    role: 'teacher',
-    hash: hash,
-    salt: salt,
-  });
-  console.log('user created');
-  res.send('autho ok');
-});
-
-router.get('/logout', (req, res, next) => {
-  console.log('was logout');
-  req.logOut();
-  res.send('was logout');
-});
-router.get('/checkAuth', function (req, res) {
-  console.log('get checkauth');
-  console.log(req.isAuthenticated());
-  if (req.isAuthenticated()) {
-    res.send({ authenticated: true, user: req.user.username, role: req.user.role });
-  } else {
-    res.send({ authenticated: false });
+      const salt = saltHash.salt;
+      const hash = saltHash.hash;
+      User.create({
+        username: req.body.username,
+        role: req.body.role,
+        hash: hash,
+        salt: salt,
+      });
+      res.send('autho ok');
+    } else {
+      res.send('У вас нет прав');
+    }
+  } catch (error) {
+    console.log(error);
   }
 });
+router.post('/editpassword', function (req, res) {
+  try {
+    if (req.user.role === 'superadmin') {
+      const userId = req.body.userId;
+      const newPassword = req.body.newPassword;
+      const currentPassword = req.body.currentPassword;
+
+      User.findOne({
+        where: {
+          id: userId,
+        },
+      })
+        .then((user) => {
+          if (!user) {
+            res.send('Пользователь не найден.');
+          } else {
+            const isValid = validPassword(currentPassword, user.hash, user.salt);
+            if (isValid) {
+              const saltHash = genPassword(newPassword);
+
+              const salt = saltHash.salt;
+              const hash = saltHash.hash;
+
+              user
+                .update({
+                  hash: hash,
+                  salt: salt,
+                })
+                .then(() => {
+                  res.send('Пароль успешно изменен.');
+                })
+                .catch((err) => {
+                  console.log(err);
+                  res.send('Ошибка при изменении пароля.');
+                });
+            } else {
+              res.send('Неверный текущий пароль.');
+            }
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+          res.send('Ошибка при поиске пользователя.');
+        });
+    } else {
+      res.send('У вас нет прав.');
+    }
+  } catch (error) {
+    console.log(error);
+  }
+});
+router.get('/logout', (req, res, next) => {
+  try {
+    req.logOut();
+    res.send('was logout');
+  } catch (error) {
+    console.log(error);
+  }
+});
+router.get('/checkAuth', function (req, res) {
+  try {
+    if (req.isAuthenticated()) {
+      res.send({ authenticated: true, user: req.user.username, role: req.user.role });
+    } else {
+      res.send({ authenticated: false });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+});
+
 module.exports = { router, passport };
